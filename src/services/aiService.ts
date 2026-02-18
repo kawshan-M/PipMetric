@@ -57,10 +57,12 @@ class RealAIService implements AIService {
   private marketauxToken: string;
 
   constructor() {
-    this.apiKey = getEnvVar("NEXT_PUBLIC_GEMINI_API_KEY");
-    this.marketauxToken = getEnvVar("NEXT_PUBLIC_MARKETAUX_API_TOKEN");
+    // Trim to avoid whitespace issues
+    this.apiKey = getEnvVar("NEXT_PUBLIC_GEMINI_API_KEY").trim();
+    this.marketauxToken = getEnvVar("NEXT_PUBLIC_MARKETAUX_API_TOKEN").trim();
 
     // --- DEBUG LOGGING ---
+    console.log("Environment Status:", !!this.apiKey); // Logic requested by user
     console.log("--- DEBUG: AI Service Init (Gemini 2.5 Flash) ---");
     console.log("API Key (first 5 chars):", this.apiKey ? this.apiKey.slice(0, 5) : "MISSING");
     console.log(`MarketAux Token set: ${!!this.marketauxToken}`);

@@ -3,22 +3,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Calculator, 
-  BrainCircuit, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  Calculator,
+  BrainCircuit,
+  BookOpen,
+  Calendar,
   Settings,
-  LogOut 
+  LogOut
 } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Calculators", href: "/calculators", icon: Calculator },
     { name: "Intelligence", href: "/intelligence", icon: BrainCircuit },
+    { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Journal", href: "/journal", icon: BookOpen },
   ];
 
@@ -37,11 +39,10 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                isActive 
-                  ? "bg-[#007BFF]/10 text-[#007BFF]" 
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                  ? "bg-[#007BFF]/10 text-[#007BFF]"
                   : "text-gray-400 hover:bg-gray-900 hover:text-white"
-              }`}
+                }`}
             >
               <item.icon size={20} className={isActive ? "text-[#007BFF]" : "text-gray-400 group-hover:text-white"} />
               <span className="font-medium">{item.name}</span>

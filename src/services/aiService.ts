@@ -17,6 +17,7 @@ export interface AIService {
   getMarketSentiment(): Promise<SentimentData>;
   getAssetSentiments(): Promise<AssetSentiment[]>;
   checkModelAccess(): Promise<void>;
+  generateEventInsight(eventName: string, actual: string | null, forecast: string | null): Promise<string>;
 }
 
 // Safe environment variable accessor
@@ -240,6 +241,31 @@ class RealAIService implements AIService {
     }
 
     return MOCK_ASSET_DATA;
+  }
+
+  async generateEventInsight(eventName: string, actual: string | null, forecast: string | null): Promise<string> {
+    if (!this.genAI) {
+      return "AI insight unavailable. Please add Gemini API key.";
+    }
+
+    try {
+      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const prompt = `
+        You are an expert forex and index trader. 
+        An economic event just occurred or is coming up: "${eventName}".
+        Actual value: ${actual || "N/A"}. Forecast value: ${forecast || "N/A"}.
+        
+        Question: How will this event impact NAS100 volatility today?
+        Rules: Write exactly ONE short, punchy sentence. No disclaimers. Get straight to the point.
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = (await result.response).text().trim();
+      return text;
+    } catch (error) {
+      console.error("Failed to generate event insight:", error);
+      return "Analysis failed due to a system error.";
+    }
   }
 }
 

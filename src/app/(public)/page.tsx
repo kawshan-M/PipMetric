@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8 max-w-5xl mx-auto relative mt-16">
       {/* Background glow for hero */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#007BFF]/20 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#007BFF]/10 rounded-full blur-[140px] pointer-events-none -z-10" />
 
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#007BFF]/10 text-[#007BFF] border border-[#007BFF]/20 text-sm font-medium mb-4">
         <span className="relative flex h-2 w-2">
@@ -27,14 +27,28 @@ export default function Home() {
         PipMetric provides institutional-grade analytics, real-time position calculators, and AI-driven journal insights for the modern trader.
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 mt-8">
+      <div className="flex flex-col sm:flex-row gap-4 mt-8 items-center justify-center">
         <Link href="/dashboard" className="group flex items-center justify-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-8 py-4 rounded-xl text-lg font-bold transition-all shadow-[0_0_20px_rgba(0,123,255,0.3)] hover:shadow-[0_0_30px_rgba(0,123,255,0.5)]">
           Start Trading
           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
-        <Link href="/dashboard" className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all border border-gray-700">
-          View Demo
-        </Link>
+      </div>
+
+      <div className="w-full max-w-4xl overflow-hidden mt-12 bg-black/20 border border-gray-800/50 rounded-2xl py-3 backdrop-blur-md relative">
+        <div className="absolute top-0 left-0 w-20 h-full bg-gradient-to-r from-[#0B0E11] to-transparent z-10 pointer-events-none"></div>
+        <div className="flex w-max animate-marquee space-x-12">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex space-x-12 font-mono text-sm items-center px-6">
+              <span className="text-gray-300 font-medium">NAS100 <span className="text-[#00ff41] ml-1">▲ 17,540 (+0.8%)</span></span>
+              <span className="text-gray-300 font-medium">SPX500 <span className="text-[#ff3131] ml-1">▼ 5,120 (-0.2%)</span></span>
+              <span className="text-gray-300 font-medium">BTC/USD <span className="text-[#00ff41] ml-1">▲ $68,400 (+2.1%)</span></span>
+              <span className="text-gray-300 font-medium">EUR/USD <span className="text-[#ff3131] ml-1">▼ 1.0845 (-0.1%)</span></span>
+              <span className="text-gray-300 font-medium">GOLD <span className="text-[#00ff41] ml-1">▲ $2,340 (+0.5%)</span></span>
+              <span className="text-gray-300 font-medium">ETH/USD <span className="text-[#00ff41] ml-1">▲ $3,850 (+1.2%)</span></span>
+            </div>
+          ))}
+        </div>
+        <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-[#0B0E11] to-transparent z-10 pointer-events-none"></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-32 text-left w-full relative z-10 mb-20">

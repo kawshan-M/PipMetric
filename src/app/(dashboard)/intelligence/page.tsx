@@ -1,5 +1,5 @@
-import IntelligenceDashboard from "@/features/intelligence/IntelligenceDashboard";
+import ComingSoonAds from "@/components/ComingSoonAds";
 
 export default function IntelligencePage() {
-    return <IntelligenceDashboard />;
+    return <ComingSoonAds title="Intelligence" />;
 }

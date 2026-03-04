@@ -54,7 +54,7 @@ export default function Topbar() {
                 >
                     {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
-                <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-[#00ff41] to-[#007BFF] bg-clip-text text-transparent">
+                <Link href="/" className="text-xl font-bold bg-gradient-to-r from-[#00ff41] to-[#007BFF] bg-clip-text text-transparent">
                     PipMetric
                 </Link>
             </div>
@@ -117,14 +117,11 @@ export default function Topbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-                <div className="hidden sm:flex items-center gap-2 bg-gray-900/50 px-3 py-1.5 rounded-lg border border-gray-800">
-                    <div className="w-2 h-2 rounded-full bg-[#00ff41] animate-pulse"></div>
-                    <span className="text-xs font-mono text-gray-400">Market Open</span>
-                </div>
-
-                <button className="flex items-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-[#007BFF]/20">
-                    <Wallet size={16} />
-                    <span className="hidden sm:inline">Connect Wallet</span>
+                <button
+                    onClick={() => alert("Login functionality is coming soon! We are working on it.")}
+                    className="flex items-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-[#007BFF]/20"
+                >
+                    <span className="hidden sm:inline">Login</span>
                 </button>
             </div>
 

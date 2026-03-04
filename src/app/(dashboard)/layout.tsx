@@ -1,5 +1,6 @@
 import Topbar from "@/components/Topbar";
 import AdBanner from "@/components/AdBanner";
+import Footer from "@/components/public/Footer";
 
 export default function DashboardLayout({
     children,
@@ -45,6 +46,9 @@ export default function DashboardLayout({
                 </aside>
 
             </div>
+
+            {/* Global Footer */}
+            <Footer />
         </div>
     );
 }

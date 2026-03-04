@@ -2,8 +2,10 @@
 
 import { ArrowRight, BarChart2, Zap, Shield } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
+  const { user, loginWithGoogle } = useAuth();
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8 max-w-5xl mx-auto relative mt-16">
       {/* Background glow for hero */}
@@ -29,10 +31,12 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 mt-8 items-center justify-center">
-        <button onClick={() => alert("Login functionality is coming soon! We are working on it.")} className="group flex items-center justify-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-8 py-4 rounded-xl text-lg font-bold transition-all shadow-[0_0_20px_rgba(0,123,255,0.3)] hover:shadow-[0_0_30px_rgba(0,123,255,0.5)]">
-          Login
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
+        {!user && (
+          <button onClick={loginWithGoogle} className="group flex items-center justify-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-8 py-4 rounded-xl text-lg font-bold transition-all shadow-[0_0_20px_rgba(0,123,255,0.3)] hover:shadow-[0_0_30px_rgba(0,123,255,0.5)]">
+            Sign In | Join
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        )}
       </div>
 
       <div className="w-full max-w-4xl overflow-hidden mt-12 bg-black/20 border border-gray-800/50 rounded-2xl py-3 backdrop-blur-md relative">

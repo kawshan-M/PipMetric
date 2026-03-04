@@ -16,11 +16,13 @@ import {
     ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Topbar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [calcDropdownOpen, setCalcDropdownOpen] = useState(false);
+    const { user, loading, loginWithGoogle, logout } = useAuth();
 
     const navigation = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -117,12 +119,30 @@ export default function Topbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-                <button
-                    onClick={() => alert("Login functionality is coming soon! We are working on it.")}
-                    className="flex items-center gap-2 bg-[#007BFF] hover:bg-[#0056b3] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-[#007BFF]/20"
-                >
-                    <span className="hidden sm:inline">Login</span>
-                </button>
+                {loading ? (
+                    <div className="w-20 h-8 animate-pulse bg-white/10 rounded-lg"></div>
+                ) : user ? (
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={logout}
+                            className="text-white/80 hover:text-white font-medium transition-colors text-sm"
+                        >
+                            Sign Out
+                        </button>
+                        <img
+                            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`}
+                            alt="User Profile"
+                            className="w-10 h-10 rounded-full border-2 border-white/20 object-cover"
+                        />
+                    </div>
+                ) : (
+                    <button
+                        onClick={loginWithGoogle}
+                        className="flex items-center gap-2 text-white/90 hover:text-white font-medium transition-colors text-sm"
+                    >
+                        <span className="hidden sm:inline">Sign In <span className="mx-1">|</span> Join</span>
+                    </button>
+                )}
             </div>
 
             {/* Mobile Navigation Menu */}

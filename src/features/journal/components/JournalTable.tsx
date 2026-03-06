@@ -152,12 +152,12 @@ export default function JournalTable() {
                                     )}
                                 </td>
                                 <td className="px-4 py-3 text-right pr-8">
-                                    {row.pl !== null && row.pl !== undefined && (
-                                        <span className={row.pl >= 0 ? "text-green-500" : "text-red-500"}>{row.pl}</span>
+                                    {row.pl !== null && row.pl !== undefined && row.pl !== "" && (
+                                        <span className={Number(row.pl) >= 0 ? "text-green-500" : "text-red-500"}>{row.pl}</span>
                                     )}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="checkbox" defaultChecked={row.followedRules} className="rounded bg-transparent border-gray-600 appearance-none w-4 h-4 border checked:bg-blue-500 checked:border-blue-500 cursor-pointer" />
+                                    <input type="checkbox" defaultChecked={row.followedRules === true || row.followedRules === "Yes"} className="rounded bg-transparent border-gray-600 appearance-none w-4 h-4 border checked:bg-blue-500 checked:border-blue-500 cursor-pointer" />
                                 </td>
                             </tr>
                         ))}

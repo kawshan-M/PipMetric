@@ -6,15 +6,15 @@ export interface TradeEntry {
     session: string;
     entryWindow: string;
     direction: "LONG" | "SHORT" | "";
-    pl: number | null;
-    followedRules: boolean;
-    be: boolean; // Break Even
+    pl: number | string;
+    followedRules: "Yes" | "No" | "" | boolean;
+    be: "Yes" | "No" | "" | boolean; // Break Even
     model: string;
     account: string;
     positiveTags: string[];
     negativeTags: string[];
-    rating: number | null; // 1-5
-    win: boolean;
+    rating: number | string; // 1-5
+    win: "Yes" | "No" | "" | boolean;
     preTradeState: string;
     duringTradeState: string;
     postTradeState: string;

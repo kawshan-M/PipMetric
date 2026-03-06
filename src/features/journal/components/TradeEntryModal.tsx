@@ -26,6 +26,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import DatePickerPopover from "./DatePickerPopover";
 import PropertyMenuPopover from "./PropertyMenuPopover";
+import BadgeSelectPopover, { BadgeOption, colorMap } from "./BadgeSelectPopover";
 
 interface TradeEntryModalProps {
     isOpen: boolean;
@@ -33,20 +34,20 @@ interface TradeEntryModalProps {
 }
 
 const initialFormState: Omit<TradeEntry, "userId" | "id"> = {
-    date: new Date().toISOString().split("T")[0],
+    date: "",
     pairs: "",
     session: "",
     entryWindow: "",
     direction: "",
-    pl: null,
-    followedRules: false,
-    be: false,
+    pl: "",
+    followedRules: "",
+    be: "",
     model: "",
     account: "",
     positiveTags: [],
     negativeTags: [],
-    rating: null,
-    win: false,
+    rating: "",
+    win: "",
     preTradeState: "",
     duringTradeState: "",
     postTradeState: "",
@@ -61,30 +62,75 @@ type FieldConfig = {
     label: string;
     icon: React.ReactNode;
     name: string;
-    type: "text" | "date" | "number" | "select" | "checkbox" | "tags";
+    type: "text" | "date" | "number" | "select" | "checkbox" | "tags" | "badge-select";
     visibility?: "always" | "hide-empty" | "always-hide";
     isPositiveTags?: boolean;
     min?: number;
     max?: number;
     step?: string;
-    options?: { value: string, label: string }[];
+    options?: { value: string, label: string }[] | BadgeOption[];
+    disableCreate?: boolean;
 };
 
 const defaultFields: FieldConfig[] = [
     { id: "f-date", name: "date", label: "Date", icon: <Calendar className="w-4 h-4" />, type: "date", visibility: "always" },
-    { id: "f-pairs", name: "pairs", label: "Pairs", icon: <Focus className="w-4 h-4" />, type: "text", visibility: "always" },
-    { id: "f-session", name: "session", label: "Session", icon: <MapPin className="w-4 h-4" />, type: "text", visibility: "always" },
-    { id: "f-entryWindow", name: "entryWindow", label: "Entry Window", icon: <Calendar className="w-4 h-4" />, type: "text", visibility: "always" },
-    { id: "f-direction", name: "direction", label: "Direction", icon: <Target className="w-4 h-4" />, type: "select", options: [{ value: "", label: "Empty" }, { value: "LONG", label: "LONG" }, { value: "SHORT", label: "SHORT" }], visibility: "always" },
+    { id: "f-pairs", name: "pairs", label: "Pairs", icon: <Focus className="w-4 h-4" />, type: "badge-select", options: [], visibility: "always" },
+    {
+        id: "f-session", name: "session", label: "Session", icon: <MapPin className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "opt-asian", value: "Asian", label: "Asian", color: "yellow" },
+            { id: "opt-london", value: "London", label: "London", color: "green" },
+            { id: "opt-new-york", value: "New York", label: "New York", color: "blue" }
+        ], visibility: "always", disableCreate: true
+    },
+    {
+        id: "f-entryWindow", name: "entryWindow", label: "Entry Window", icon: <Calendar className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "ew-1-2am", value: "1-2am", label: "1-2am", color: "green" },
+            { id: "ew-2-3am", value: "2-3am", label: "2-3am", color: "green" },
+            { id: "ew-3-4am", value: "3-4am", label: "3-4am", color: "green" },
+            { id: "ew-4-5am", value: "4-5am", label: "4-5am", color: "green" },
+            { id: "ew-5-6am", value: "5-6am", label: "5-6am", color: "green" },
+            { id: "ew-6-7am", value: "6-7am", label: "6-7am", color: "green" },
+            { id: "ew-7-8am", value: "7-8am", label: "7-8am", color: "blue" },
+            { id: "ew-8-9am", value: "8-9am", label: "8-9am", color: "blue" },
+            { id: "ew-9-10am", value: "9-10am", label: "9-10am", color: "blue" },
+            { id: "ew-10-11am", value: "10-11am", label: "10-11am", color: "blue" },
+            { id: "ew-11-12pm", value: "11-12pm", label: "11-12pm", color: "blue" },
+            { id: "ew-12-1pm", value: "12-1pm", label: "12-1pm", color: "blue" },
+            { id: "ew-1-2pm", value: "1-2pm", label: "1-2pm", color: "blue" },
+            { id: "ew-2-3pm", value: "2-3pm", label: "2-3pm", color: "blue" },
+            { id: "ew-3-4pm", value: "3-4pm", label: "3-4pm", color: "blue" }
+        ], visibility: "always"
+    },
+    {
+        id: "f-direction", name: "direction", label: "Direction", icon: <Target className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "dir-long", value: "LONG", label: "LONG", color: "green" },
+            { id: "dir-short", value: "SHORT", label: "SHORT", color: "red" }
+        ], visibility: "always", disableCreate: true
+    },
     { id: "f-pl", name: "pl", label: "Profit/Loss", icon: <DollarSign className="w-4 h-4" />, type: "number", step: "0.1", visibility: "always" },
-    { id: "f-followedRules", name: "followedRules", label: "Followed rules", icon: <CheckCircle className="w-4 h-4" />, type: "checkbox", visibility: "always" },
-    { id: "f-be", name: "be", label: "BE", icon: <CheckCircle className="w-4 h-4" />, type: "checkbox", visibility: "always" },
+    {
+        id: "f-followedRules", name: "followedRules", label: "Followed rules", icon: <CheckCircle className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "fr-yes", value: "Yes", label: "Yes", color: "green" },
+            { id: "fr-no", value: "No", label: "No", color: "red" }
+        ], visibility: "always", disableCreate: true
+    },
+    {
+        id: "f-be", name: "be", label: "BE", icon: <CheckCircle className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "be-yes", value: "Yes", label: "Yes", color: "green" },
+            { id: "be-no", value: "No", label: "No", color: "red" }
+        ], visibility: "always", disableCreate: true
+    },
     { id: "f-model", name: "model", label: "Model", icon: <TextSelect className="w-4 h-4" />, type: "text", visibility: "always" },
     { id: "f-account", name: "account", label: "Account", icon: <MessageSquare className="w-4 h-4" />, type: "text", visibility: "always" },
     { id: "f-positiveTags", name: "positiveTags", label: "Positive tags", icon: <Tag className="w-4 h-4" />, type: "tags", isPositiveTags: true, visibility: "always" },
     { id: "f-negativeTags", name: "negativeTags", label: "Negative tags", icon: <Tag className="w-4 h-4" />, type: "tags", isPositiveTags: false, visibility: "always" },
     { id: "f-rating", name: "rating", label: "Rating(1-5)", icon: <Award className="w-4 h-4" />, type: "number", min: 1, max: 5, visibility: "always" },
-    { id: "f-win", name: "win", label: "WIN", icon: <CheckCircle className="w-4 h-4" />, type: "checkbox", visibility: "always" },
+    {
+        id: "f-win", name: "win", label: "WIN", icon: <CheckCircle className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "win-yes", value: "Yes", label: "Yes", color: "green" },
+            { id: "win-no", value: "No", label: "No", color: "red" }
+        ], visibility: "always", disableCreate: true
+    },
 ];
 
 
@@ -96,7 +142,8 @@ function SortableField({
     onRename,
     onVisibilityChange,
     onDuplicate,
-    onDelete
+    onDelete,
+    onUpdateFieldOptions
 }: {
     field: FieldConfig,
     formData: any,
@@ -105,7 +152,8 @@ function SortableField({
     onRename: (id: string, newLabel: string) => void,
     onVisibilityChange: (id: string, visibility: "always" | "hide-empty" | "always-hide") => void,
     onDuplicate: (id: string) => void,
-    onDelete: (id: string) => void
+    onDelete: (id: string) => void,
+    onUpdateFieldOptions: (id: string, newOptions: any[]) => void
 }) {
     const {
         attributes,
@@ -118,11 +166,12 @@ function SortableField({
 
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isBadgeSelectOpen, setIsBadgeSelectOpen] = useState(false);
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        zIndex: isDragging || isDatePickerOpen || isMenuOpen ? 10 : 1,
+        zIndex: isDragging || isDatePickerOpen || isMenuOpen || isBadgeSelectOpen ? 10 : 1,
     };
 
     const handleDateChange = (data: { startDate: string, endDate?: string, includeTime: boolean, startTime?: string, endTime?: string, timeFormat?: string, timezone?: string }) => {
@@ -245,13 +294,13 @@ function SortableField({
 
             <div className="flex-1">
                 {field.type === "text" && (
-                    <input type="text" name={field.name} value={formData[field.name]} onChange={handleChange} placeholder="Empty" className="w-full bg-transparent text-gray-400 placeholder-gray-600 focus:outline-none focus:text-white" />
+                    <input type="text" name={field.name} value={formData[field.name]} onChange={handleChange} placeholder="Empty" className="w-full bg-transparent text-gray-400 placeholder-gray-600 focus:outline-none focus:text-white py-1 min-h-[28px]" />
                 )}
                 {field.type === "date" && (
                     <div className="relative w-full">
                         <div
                             onClick={() => setIsDatePickerOpen(true)}
-                            className="w-full bg-transparent text-gray-300 font-medium cursor-pointer py-1"
+                            className="w-full bg-transparent text-gray-300 font-medium cursor-pointer py-1 min-h-[28px] flex items-center"
                         >
                             {formatDateDisplay(formData[field.name])}
                         </div>
@@ -265,10 +314,10 @@ function SortableField({
                     </div>
                 )}
                 {field.type === "number" && (
-                    <input type="number" step={field.step} min={field.min} max={field.max} name={field.name} value={formData[field.name] === null ? "" : formData[field.name]} onChange={handleChange} placeholder="Empty" className="w-full bg-transparent text-gray-400 placeholder-gray-600 focus:outline-none focus:text-white" />
+                    <input type="number" step={field.step} min={field.min} max={field.max} name={field.name} value={formData[field.name] === null ? "" : formData[field.name]} onChange={handleChange} placeholder="Empty" className="w-full bg-transparent text-gray-400 placeholder-gray-600 focus:outline-none focus:text-white py-1 min-h-[28px] hide-spinners" />
                 )}
                 {field.type === "select" && (
-                    <select name={field.name} value={formData[field.name]} onChange={handleChange} className="w-full bg-transparent text-gray-400 focus:outline-none focus:text-white appearance-none cursor-pointer">
+                    <select name={field.name} value={formData[field.name]} onChange={handleChange} className="w-full bg-transparent text-gray-400 focus:outline-none focus:text-white appearance-none cursor-pointer py-1 min-h-[28px]">
                         {field.options?.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -279,6 +328,36 @@ function SortableField({
                 )}
                 {field.type === "tags" && (
                     <input type="text" value={formData[field.name].join(", ")} onChange={(e) => handleTagsChange(e, field.isPositiveTags!)} placeholder="Comma separated..." className="w-full bg-transparent text-gray-400 placeholder-gray-600 focus:outline-none focus:text-white" />
+                )}
+                {field.type === "badge-select" && (
+                    <div className="relative w-full">
+                        <div
+                            onClick={() => setIsBadgeSelectOpen(true)}
+                            className="w-full bg-transparent font-medium cursor-pointer py-1 min-h-[28px] flex items-center"
+                        >
+                            {formData[field.name] ? (() => {
+                                const selectedOpt = (field.options as BadgeOption[])?.find(o => o.value === formData[field.name]);
+                                if (selectedOpt) {
+                                    return (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium truncate ${colorMap[selectedOpt.color || "default"].bg} ${colorMap[selectedOpt.color || "default"].text}`}>
+                                            {selectedOpt.label}
+                                        </span>
+                                    );
+                                }
+                                return <span className="text-gray-400">Empty</span>;
+                            })() : <span className="text-gray-600">Empty</span>}
+                        </div>
+                        {isBadgeSelectOpen && (
+                            <BadgeSelectPopover
+                                options={(field.options as BadgeOption[]) || []}
+                                selectedValue={formData[field.name] || ""}
+                                onChange={(value) => handleChange({ target: { name: field.name, value, type: "text" } })}
+                                onUpdateOptions={(newOptions) => onUpdateFieldOptions(field.id, newOptions)}
+                                onClose={() => setIsBadgeSelectOpen(false)}
+                                disableCreate={field.disableCreate}
+                            />
+                        )}
+                    </div>
                 )}
             </div>
         </div>
@@ -372,6 +451,10 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
             delete newData[fieldToDelete.name as keyof typeof newData];
             return newData;
         });
+    };
+
+    const handleUpdateFieldOptions = (id: string, newOptions: any[]) => {
+        setFields(prev => prev.map(f => f.id === id ? { ...f, options: newOptions } : f));
     };
 
     const handleSubmit = async () => {
@@ -470,6 +553,7 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
                                             onVisibilityChange={handleVisibilityChange}
                                             onDuplicate={handleDuplicate}
                                             onDelete={handleDelete}
+                                            onUpdateFieldOptions={handleUpdateFieldOptions}
                                         />
                                     ))}
                                 </SortableContext>

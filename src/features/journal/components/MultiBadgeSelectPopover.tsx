@@ -25,16 +25,16 @@ export const colorMap: Record<BadgeColor, { bg: string, text: string, hover: str
     red: { bg: "bg-[#301C1D]", text: "text-[#DF5452]", hover: "hover:bg-[#392223]" }
 };
 
-interface BadgeSelectPopoverProps {
+interface MultiBadgeSelectPopoverProps {
     options: BadgeOption[];
-    selectedValue: string;
-    onChange: (value: string) => void;
+    selectedValues: string[];
+    onChange: (values: string[]) => void;
     onUpdateOptions: (newOptions: BadgeOption[]) => void;
     onClose: () => void;
     disableCreate?: boolean;
 }
 
-export default function BadgeSelectPopover({ options, selectedValue, onChange, onUpdateOptions, onClose, disableCreate }: BadgeSelectPopoverProps) {
+export default function MultiBadgeSelectPopover({ options, selectedValues, onChange, onUpdateOptions, onClose, disableCreate }: MultiBadgeSelectPopoverProps) {
     const popoverRef = useRef<HTMLDivElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [editingOption, setEditingOption] = useState<BadgeOption | null>(null);
@@ -70,8 +70,8 @@ export default function BadgeSelectPopover({ options, selectedValue, onChange, o
 
         const updated = [...options, newOption];
         onUpdateOptions(updated);
-        onChange(newOption.value);
-        onClose();
+        onChange([...selectedValues, newOption.value]);
+        setSearchQuery("");
     };
 
     const handleCreateNew = () => {
@@ -84,14 +84,17 @@ export default function BadgeSelectPopover({ options, selectedValue, onChange, o
         };
         const updated = [...options, newOption];
         onUpdateOptions(updated);
-        onChange(newOption.value);
+        onChange([...selectedValues, newOption.value]);
         setEditingOption(newOption);
         setTempLabel("");
     };
 
-    const handleSelectOption = (value: string) => {
-        onChange(value === selectedValue ? "" : value);
-        onClose();
+    const handleToggleOption = (value: string) => {
+        if (selectedValues.includes(value)) {
+            onChange(selectedValues.filter(v => v !== value));
+        } else {
+            onChange([...selectedValues, value]);
+        }
     };
 
     const handleEditStart = (e: React.MouseEvent, opt: BadgeOption) => {
@@ -115,9 +118,10 @@ export default function BadgeSelectPopover({ options, selectedValue, onChange, o
 
         onUpdateOptions(updatedOptions);
 
-        // If they had this item selected, update the parent value state as well
-        if (selectedValue === editingOption.value && updatedLabel !== editingOption.value) {
-            onChange(updatedLabel);
+        // Update selected values if the edited option was selected
+        if (selectedValues.includes(editingOption.value) && updatedLabel !== editingOption.value) {
+            const newSelectedValues = selectedValues.map(v => v === editingOption.value ? updatedLabel : v);
+            onChange(newSelectedValues);
         }
 
         setEditingOption(null);
@@ -127,9 +131,11 @@ export default function BadgeSelectPopover({ options, selectedValue, onChange, o
         if (!editingOption) return;
         const updatedOptions = options.filter(o => o.id !== editingOption.id);
         onUpdateOptions(updatedOptions);
-        if (selectedValue === editingOption.value) {
-            onChange("");
+
+        if (selectedValues.includes(editingOption.value)) {
+            onChange(selectedValues.filter(v => v !== editingOption.value));
         }
+
         setEditingOption(null);
     };
 
@@ -243,10 +249,10 @@ export default function BadgeSelectPopover({ options, selectedValue, onChange, o
                         <div
                             key={opt.id}
                             className="flex items-center justify-between px-2 mx-2 py-1 hover:bg-white/5 rounded transition-colors group cursor-pointer"
-                            onClick={() => handleSelectOption(opt.value)}
+                            onClick={() => handleToggleOption(opt.value)}
                         >
                             <div className="flex items-center gap-2 overflow-hidden">
-                                {selectedValue === opt.value ? (
+                                {selectedValues.includes(opt.value) ? (
                                     <div className="w-4 flex justify-center"><Check className="w-3.5 h-3.5 text-blue-500" /></div>
                                 ) : (
                                     <div className="w-4 flex justify-center"><div className="w-1.5 h-1.5 bg-gray-600 rounded-full group-hover:bg-gray-400 transition-colors"></div></div>

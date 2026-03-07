@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Calendar, Focus, MapPin, Target, DollarSign, TextSelect, MessageSquare, Award, CheckCircle, Tag, Camera, GripVertical } from "lucide-react";
+import { X, Calendar, Focus, MapPin, Target, DollarSign, TextSelect, MessageSquare, Award, CheckCircle, Tag, Camera, GripVertical, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { TradeEntry } from "@/features/journal/types";
+import { TradeEntry, EditorBlock } from "@/features/journal/types";
 
 import {
     DndContext,
@@ -27,6 +27,8 @@ import { CSS } from '@dnd-kit/utilities';
 import DatePickerPopover from "./DatePickerPopover";
 import PropertyMenuPopover from "./PropertyMenuPopover";
 import BadgeSelectPopover, { BadgeOption, colorMap } from "./BadgeSelectPopover";
+import MultiBadgeSelectPopover from "./MultiBadgeSelectPopover";
+import SortableEditorBlock from "./SortableEditorBlock";
 
 interface TradeEntryModalProps {
     isOpen: boolean;
@@ -54,7 +56,24 @@ const initialFormState: Omit<TradeEntry, "userId" | "id"> = {
     tradeRules: { rule1: false, rule2: false },
     setupAnalysisText: "",
     setupOutcomeText: "",
+    contentBlocks: [],
 };
+
+const defaultBlocks: EditorBlock[] = [
+    { id: "blk-h1", type: "heading", content: "Mental State & Emotions", color: "green" },
+    { id: "blk-b1", type: "bullet", content: "Pre Trade State: " },
+    { id: "blk-b2", type: "bullet", content: "During Trade State: " },
+    { id: "blk-b3", type: "bullet", content: "Post Trade State: " },
+    { id: "blk-h2", type: "heading", content: "Trade Rules", color: "green" },
+    { id: "blk-c1", type: "checkbox", content: "Rule 1", checked: false },
+    { id: "blk-c2", type: "checkbox", content: "Rule 2", checked: false },
+    { id: "blk-h3", type: "heading", content: "Setup Analysis", color: "green" },
+    { id: "blk-b4", type: "bullet", content: "" },
+    { id: "blk-i1", type: "image", content: "" },
+    { id: "blk-h4", type: "heading", content: "Setup Outcome", color: "green" },
+    { id: "blk-b5", type: "bullet", content: "" },
+    { id: "blk-i2", type: "image", content: "" }
+];
 
 // Define the fields configuration
 type FieldConfig = {
@@ -62,7 +81,7 @@ type FieldConfig = {
     label: string;
     icon: React.ReactNode;
     name: string;
-    type: "text" | "date" | "number" | "select" | "checkbox" | "tags" | "badge-select";
+    type: "text" | "date" | "number" | "select" | "checkbox" | "tags" | "badge-select" | "multi-badge-select";
     visibility?: "always" | "hide-empty" | "always-hide";
     isPositiveTags?: boolean;
     min?: number;
@@ -120,10 +139,33 @@ const defaultFields: FieldConfig[] = [
             { id: "be-no", value: "No", label: "No", color: "red" }
         ], visibility: "always", disableCreate: true
     },
-    { id: "f-model", name: "model", label: "Model", icon: <TextSelect className="w-4 h-4" />, type: "text", visibility: "always" },
-    { id: "f-account", name: "account", label: "Account", icon: <MessageSquare className="w-4 h-4" />, type: "text", visibility: "always" },
-    { id: "f-positiveTags", name: "positiveTags", label: "Positive tags", icon: <Tag className="w-4 h-4" />, type: "tags", isPositiveTags: true, visibility: "always" },
-    { id: "f-negativeTags", name: "negativeTags", label: "Negative tags", icon: <Tag className="w-4 h-4" />, type: "tags", isPositiveTags: false, visibility: "always" },
+    {
+        id: "f-model", name: "model", label: "Model", icon: <TextSelect className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "mod-2", value: "Model 2", label: "Model 2", color: "gray" },
+            { id: "mod-1", value: "Model 1", label: "Model 1", color: "red" }
+        ], visibility: "always"
+    },
+    {
+        id: "f-account", name: "account", label: "Account", icon: <MessageSquare className="w-4 h-4" />, type: "badge-select", options: [
+            { id: "acc-1", value: "Account1", label: "Account1", color: "default" },
+            { id: "acc-2", value: "Account2", label: "Account2", color: "purple" },
+            { id: "acc-3", value: "Account3", label: "Account3", color: "pink" }
+        ], visibility: "always"
+    },
+    {
+        id: "f-positiveTags", name: "positiveTags", label: "Positive tags", icon: <Tag className="w-4 h-4" />, type: "multi-badge-select", isPositiveTags: true, options: [
+            { id: "pt-1", value: "well-managed", label: "well-managed", color: "green" },
+            { id: "pt-2", value: "perfect-entry", label: "perfect-entry", color: "green" }
+        ], visibility: "always"
+    },
+    {
+        id: "f-negativeTags", name: "negativeTags", label: "Negative tags", icon: <Tag className="w-4 h-4" />, type: "multi-badge-select", isPositiveTags: false, options: [
+            { id: "nt-1", value: "early-exit", label: "early-exit", color: "red" },
+            { id: "nt-2", value: "sl-placement", label: "sl-placement", color: "red" },
+            { id: "nt-3", value: "impulsive", label: "impulsive", color: "red" },
+            { id: "nt-4", value: "revenge-trading", label: "revenge-trading", color: "red" }
+        ], visibility: "always"
+    },
     { id: "f-rating", name: "rating", label: "Rating(1-5)", icon: <Award className="w-4 h-4" />, type: "number", min: 1, max: 5, visibility: "always" },
     {
         id: "f-win", name: "win", label: "WIN", icon: <CheckCircle className="w-4 h-4" />, type: "badge-select", options: [
@@ -359,18 +401,67 @@ function SortableField({
                         )}
                     </div>
                 )}
+                {field.type === "multi-badge-select" && (
+                    <div className="relative w-full">
+                        <div
+                            onClick={() => setIsBadgeSelectOpen(true)}
+                            className="w-full bg-transparent font-medium cursor-pointer py-1 min-h-[28px] flex items-center gap-1 flex-wrap"
+                        >
+                            {formData[field.name] && formData[field.name].length > 0 ? (
+                                formData[field.name].map((val: string) => {
+                                    const selectedOpt = (field.options as BadgeOption[])?.find(o => o.value === val);
+                                    if (selectedOpt) {
+                                        return (
+                                            <span key={val} className={`px-2 py-0.5 rounded text-xs font-medium truncate ${colorMap[selectedOpt.color || "default"].bg} ${colorMap[selectedOpt.color || "default"].text}`}>
+                                                {selectedOpt.label}
+                                            </span>
+                                        );
+                                    }
+                                    return null;
+                                })
+                            ) : <span className="text-gray-600">Empty</span>}
+                        </div>
+                        {isBadgeSelectOpen && (
+                            <MultiBadgeSelectPopover
+                                options={(field.options as BadgeOption[]) || []}
+                                selectedValues={formData[field.name] || []}
+                                onChange={(values) => handleChange({ target: { name: field.name, value: values, type: "multi-badge" } } as any)}
+                                onUpdateOptions={(newOptions) => onUpdateFieldOptions(field.id, newOptions)}
+                                onClose={() => setIsBadgeSelectOpen(false)}
+                                disableCreate={field.disableCreate}
+                            />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
+const BlockWrapper = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+    return (
+        <div className={`group relative flex items-start ${className}`}>
+            <div className="absolute -left-12 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-10">
+                <button type="button" className="p-0.5 text-gray-500 hover:text-gray-300 rounded transition-colors" title="Click to add a block below">
+                    <Plus className="w-4 h-4" />
+                </button>
+                <div className="p-0.5 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing rounded transition-colors" title="Drag to move">
+                    <GripVertical className="w-4 h-4" />
+                </div>
+            </div>
+            <div className="w-full">{children}</div>
+        </div>
+    );
+};
 
 export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProps) {
     const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState(initialFormState);
     const [fields, setFields] = useState(defaultFields);
+    const [blocks, setBlocks] = useState<EditorBlock[]>(defaultBlocks);
     const [showHidden, setShowHidden] = useState(false);
+    const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
 
     // Initialize drag sensors
     const sensors = useSensors(
@@ -396,8 +487,19 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
         }
     };
 
+    const handleBlockDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setBlocks((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
+
     // Form handlers
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | any) => {
         const { name, value, type } = e.target;
 
         if (type === "checkbox") {
@@ -405,6 +507,8 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else if (type === "number") {
             setFormData(prev => ({ ...prev, [name]: value === "" ? null : Number(value) }));
+        } else if (type === "multi-badge") {
+            setFormData(prev => ({ ...prev, [name]: value }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -457,6 +561,52 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
         setFields(prev => prev.map(f => f.id === id ? { ...f, options: newOptions } : f));
     };
 
+    const handleUpdateBlock = (id: string, updates: Partial<EditorBlock>) => {
+        setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+    };
+
+    const handleInsertBlock = (afterId: string, type: EditorBlock["type"] = "bullet") => {
+        const newId = `blk-${Date.now()}`;
+        const newBlock: EditorBlock = { id: newId, type, content: "" };
+
+        setBlocks(prev => {
+            const index = prev.findIndex(b => b.id === afterId);
+            if (index === -1) return [...prev, newBlock];
+            const newBlocks = [...prev];
+            newBlocks.splice(index + 1, 0, newBlock);
+            return newBlocks;
+        });
+        setFocusBlockId(newId);
+    };
+
+    const handleRemoveBlock = (id: string) => {
+        setBlocks(prev => {
+            const index = prev.findIndex(b => b.id === id);
+            if (index > 0) {
+                // Focus previous block if possible
+                setFocusBlockId(prev[index - 1].id);
+            }
+            return prev.filter(b => b.id !== id);
+        });
+    };
+
+    const handleBlockKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            // Automatically insert new generic block below when hitting enter
+            const currentBlock = blocks.find(b => b.id === id);
+            // Typically if in a checkbox, we want another checkbox
+            const newType = currentBlock?.type === "checkbox" ? "checkbox" : "bullet";
+            handleInsertBlock(id, newType);
+        } else if (e.key === "Backspace") {
+            const currentBlock = blocks.find(b => b.id === id);
+            if (currentBlock && currentBlock.content === "") {
+                e.preventDefault();
+                handleRemoveBlock(id);
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         if (!user) return alert("You must be logged in to save entries.");
 
@@ -464,6 +614,7 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
         try {
             const entryData: TradeEntry = {
                 ...formData,
+                contentBlocks: blocks,
                 userId: user.uid,
                 createdAt: serverTimestamp()
             };
@@ -573,81 +724,30 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
 
                         <div className="h-[1px] w-full bg-gray-800/80 my-4"></div>
 
-                        {/* 2. Mental State & Emotions */}
-                        <div>
-                            <h3 className="text-lg font-semibold text-green-600 mb-4">Mental State & Emotions</h3>
-
-                            <div className="mb-4">
-                                <label className="text-yellow-600 font-medium mb-1 block">Pre Trade State:</label>
-                                <div className="flex items-start gap-2 text-gray-300">
-                                    <span className="mt-1">•</span>
-                                    <input type="text" name="preTradeState" value={formData.preTradeState} onChange={handleChange} placeholder="Text" className="w-full bg-transparent focus:outline-none placeholder-gray-600" />
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <label className="text-blue-500 font-medium mb-1 block">During Trade State:</label>
-                                <div className="flex items-start gap-2 text-gray-300">
-                                    <span className="mt-1">•</span>
-                                    <input type="text" name="duringTradeState" value={formData.duringTradeState} onChange={handleChange} placeholder="Text" className="w-full bg-transparent focus:outline-none placeholder-gray-600" />
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <label className="text-purple-500 font-medium mb-1 block">Post Trade State:</label>
-                                <div className="flex items-start gap-2 text-gray-300">
-                                    <span className="mt-1">•</span>
-                                    <input type="text" name="postTradeState" value={formData.postTradeState} onChange={handleChange} placeholder="Text" className="w-full bg-transparent focus:outline-none placeholder-gray-600" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 3. Trade Rules */}
-                        <div>
-                            <h3 className="text-lg font-semibold text-green-600 mb-3">Trade Rules</h3>
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-2 text-gray-300 cursor-pointer w-max">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.tradeRules.rule1}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, tradeRules: { ...prev.tradeRules, rule1: e.target.checked } }))}
-                                        className="w-4 h-4 rounded bg-transparent border-gray-600 checked:bg-green-600 appearance-none border cursor-pointer"
-                                    />
-                                    Rule 1
-                                </label>
-                                <label className="flex items-center gap-2 text-gray-300 cursor-pointer w-max">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.tradeRules.rule2}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, tradeRules: { ...prev.tradeRules, rule2: e.target.checked } }))}
-                                        className="w-4 h-4 rounded bg-transparent border-gray-600 checked:bg-green-600 appearance-none border cursor-pointer"
-                                    />
-                                    Rule 2
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* 4. Setup Analysis & Outcome */}
-                        <div>
-                            <h3 className="text-lg font-semibold text-green-600 mb-3">Setup Analysis</h3>
-                            <div className="flex items-start gap-2 text-gray-300 mb-3">
-                                <span className="mt-1">•</span>
-                                <input type="text" name="setupAnalysisText" value={formData.setupAnalysisText} onChange={handleChange} placeholder="Text" className="w-full bg-transparent focus:outline-none placeholder-gray-600" />
-                            </div>
-                            <button className="flex items-center gap-2 w-full p-3 bg-white/5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors border border-gray-800 border-dashed">
-                                <Camera className="w-4 h-4" />
-                                Add an image
-                            </button>
-                        </div>
-
-                        <div>
-                            <h3 className="text-lg font-semibold text-green-600 mb-3">Setup Outcome</h3>
-                            <div className="flex items-start gap-2 text-gray-300 mb-3">
-                                <span className="mt-1">•</span>
-                                <input type="text" name="setupOutcomeText" value={formData.setupOutcomeText} onChange={handleChange} placeholder="Text" className="w-full bg-transparent focus:outline-none placeholder-gray-600" />
-                            </div>
-                            <button className="flex items-center gap-2 w-full p-3 bg-white/5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors border border-gray-800 border-dashed mb-2">
-                                <Camera className="w-4 h-4" />
-                                Add an image
-                            </button>
+                        {/* Dynamic Blocks Section */}
+                        <div className="flex flex-col gap-1 w-[90%] md:w-[85%] mx-auto mt-2">
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleBlockDragEnd}
+                            >
+                                <SortableContext
+                                    items={blocks.map(b => b.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    {blocks.map((block) => (
+                                        <SortableEditorBlock
+                                            key={block.id}
+                                            block={block}
+                                            onUpdate={handleUpdateBlock}
+                                            onInsert={handleInsertBlock}
+                                            onRemove={handleRemoveBlock}
+                                            onKeyDown={handleBlockKeyDown}
+                                            autoFocus={focusBlockId === block.id}
+                                        />
+                                    ))}
+                                </SortableContext>
+                            </DndContext>
                         </div>
 
                         {/* Save Button */}

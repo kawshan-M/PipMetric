@@ -1,3 +1,11 @@
+export interface EditorBlock {
+    id: string;
+    type: "heading" | "bullet" | "checkbox" | "image";
+    content: string;
+    checked?: boolean;
+    color?: string; // e.g. "green", "yellow", "blue", "purple"
+}
+
 export interface TradeEntry {
     id?: string;
     userId: string;
@@ -21,5 +29,6 @@ export interface TradeEntry {
     tradeRules: { rule1: boolean; rule2: boolean };
     setupAnalysisText: string;
     setupOutcomeText: string;
+    contentBlocks?: EditorBlock[]; // Made optional for backward compatibility
     createdAt?: any; // Firestore Timestamp
 }

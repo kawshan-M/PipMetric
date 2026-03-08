@@ -12,6 +12,7 @@ export default function JournalPage() {
     const router = useRouter();
 
     const [isTradeModalOpen, setIsTradeModalOpen] = React.useState(false);
+    const [entryToEdit, setEntryToEdit] = React.useState<any>(null);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -29,11 +30,23 @@ export default function JournalPage() {
 
     return (
         <div className="flex flex-col xl:flex-row gap-6 w-full h-full pb-10">
-            <QuickActions onOpenTradeModal={() => setIsTradeModalOpen(true)} />
-            <JournalTable />
+            <QuickActions onOpenTradeModal={() => {
+                setEntryToEdit(null);
+                setIsTradeModalOpen(true);
+            }} />
+            <JournalTable
+                onEditEntry={(entry) => {
+                    setEntryToEdit(entry);
+                    setIsTradeModalOpen(true);
+                }}
+            />
             <TradeEntryModal
                 isOpen={isTradeModalOpen}
-                onClose={() => setIsTradeModalOpen(false)}
+                onClose={() => {
+                    setIsTradeModalOpen(false);
+                    setEntryToEdit(null);
+                }}
+                entryToEdit={entryToEdit}
             />
         </div>
     );

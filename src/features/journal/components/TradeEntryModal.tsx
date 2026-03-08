@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Calendar, Focus, MapPin, Target, DollarSign, TextSelect, MessageSquare, Award, CheckCircle, Tag, Camera, GripVertical, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { TradeEntry, EditorBlock } from "@/features/journal/types";
 
 import {
@@ -33,6 +33,7 @@ import SortableEditorBlock from "./SortableEditorBlock";
 interface TradeEntryModalProps {
     isOpen: boolean;
     onClose: () => void;
+    entryToEdit?: TradeEntry | null;
 }
 
 const initialFormState: Omit<TradeEntry, "userId" | "id"> = {
@@ -454,7 +455,7 @@ const BlockWrapper = ({ children, className = "" }: { children: React.ReactNode,
     );
 };
 
-export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProps) {
+export default function TradeEntryModal({ isOpen, onClose, entryToEdit }: TradeEntryModalProps) {
     const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState(initialFormState);
@@ -462,6 +463,50 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
     const [blocks, setBlocks] = useState<EditorBlock[]>(defaultBlocks);
     const [showHidden, setShowHidden] = useState(false);
     const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
+
+    // Hydrate form if editing an existing entry
+    useEffect(() => {
+        if (isOpen && entryToEdit) {
+            // Map the saved iconName back to the actual lucide-react component
+            const iconMap: Record<string, React.ReactNode> = {
+                "Calendar": <Calendar className="w-4 h-4" />,
+                "Focus": <Focus className="w-4 h-4" />,
+                "MapPin": <MapPin className="w-4 h-4" />,
+                "Target": <Target className="w-4 h-4" />,
+                "DollarSign": <DollarSign className="w-4 h-4" />,
+                "CheckCircle": <CheckCircle className="w-4 h-4" />,
+                "TextSelect": <TextSelect className="w-4 h-4" />,
+                "MessageSquare": <MessageSquare className="w-4 h-4" />,
+                "Tag": <Tag className="w-4 h-4" />,
+                "Award": <Award className="w-4 h-4" />,
+                "FileText": <Calendar className="w-4 h-4" /> // Fallback
+            };
+
+            if (entryToEdit.formFields) {
+                const restoredFields = entryToEdit.formFields.map((f: any) => ({
+                    ...f,
+                    icon: iconMap[f.iconName] || <Calendar className="w-4 h-4" />
+                }));
+                // Make sure any newly added default fields are also included if they didn't exist when the trade was saved
+                // For simplicity we just use exactly what was saved for layout consistency
+                setFields(restoredFields as FieldConfig[]);
+            }
+
+            if (entryToEdit.contentBlocks) {
+                setBlocks(entryToEdit.contentBlocks);
+            }
+
+            // Exclude non-form properties
+            const { id, userId, createdAt, formFields, contentBlocks, ...restOfData } = entryToEdit;
+            setFormData({ ...initialFormState, ...restOfData } as any);
+
+        } else if (isOpen && !entryToEdit) {
+            // Reset to default when opening fresh
+            setFormData(initialFormState);
+            setFields(defaultFields);
+            setBlocks(defaultBlocks);
+        }
+    }, [isOpen, entryToEdit]);
 
     // Initialize drag sensors
     const sensors = useSensors(
@@ -612,15 +657,48 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
 
         setIsSubmitting(true);
         try {
+            // Clean fields to remove React elements
+            const cleanedFields = fields.map(f => {
+                const { icon, ...rest } = f;
+
+                // Keep track of the original icon for rendering later
+                let iconName = "FileText"; // default
+                if (f.id === "f-date") iconName = "Calendar";
+                else if (f.id === "f-pairs") iconName = "Focus";
+                else if (f.id === "f-session") iconName = "MapPin";
+                else if (f.id === "f-entryWindow") iconName = "Calendar";
+                else if (f.id === "f-direction") iconName = "Target";
+                else if (f.id === "f-pl") iconName = "DollarSign";
+                else if (f.id === "f-followedRules") iconName = "CheckCircle";
+                else if (f.id === "f-be") iconName = "CheckCircle";
+                else if (f.id === "f-model") iconName = "TextSelect";
+                else if (f.id === "f-account") iconName = "MessageSquare";
+                else if (f.id === "f-positiveTags") iconName = "Tag";
+                else if (f.id === "f-negativeTags") iconName = "Tag";
+                else if (f.id === "f-rating") iconName = "Award";
+                else if (f.id === "f-win") iconName = "CheckCircle";
+
+                return { ...rest, iconName };
+            });
+
             const entryData: TradeEntry = {
                 ...formData,
                 contentBlocks: blocks,
+                formFields: cleanedFields,
                 userId: user.uid,
-                createdAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
+                createdAt: entryToEdit?.createdAt || serverTimestamp(),
             };
 
-            const entriesRef = collection(db, "users", user.uid, "journal_entries");
-            await addDoc(entriesRef, entryData);
+            if (entryToEdit && entryToEdit.id) {
+                // Update existing
+                const docRef = doc(db, "users", user.uid, "journal_entries", entryToEdit.id);
+                await updateDoc(docRef, entryData as any);
+            } else {
+                // Create new
+                const entriesRef = collection(db, "users", user.uid, "journal_entries");
+                await addDoc(entriesRef, entryData);
+            }
 
             // Trigger close & reset
             setFormData(initialFormState);
@@ -669,7 +747,9 @@ export default function TradeEntryModal({ isOpen, onClose }: TradeEntryModalProp
                             <div className="p-2 bg-green-500/10 rounded-lg">
                                 <Target className="w-6 h-6 text-green-500" />
                             </div>
-                            <h2 className="text-2xl font-bold text-white tracking-tight">Trade Entry</h2>
+                            <h2 className="text-2xl font-bold text-white tracking-tight">
+                                {entryToEdit ? "Edit Trade Entry" : "Trade Entry"}
+                            </h2>
                         </div>
                         <button
                             onClick={onClose}
